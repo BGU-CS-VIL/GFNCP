@@ -1,0 +1,3 @@
+
+
+nohup python -u main.py --dataset MNIST --experiment test_new_code_3b > log &
