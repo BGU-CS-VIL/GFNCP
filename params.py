@@ -4,14 +4,14 @@ def get_parameters(dataset_name):
 
     params = {}
     
-    params['batch_size'] = 64
-    params['max_it'] = 10000
+    params['batch_size'] = 32
+    params['max_it'] = 20000
     params['loss_str'] = 'MC_R'  # Choose from: {'MC + J', 'MC', 'MC_R', 'J', 'MC + J + KL', 'KL'}
     params['data_path'] = '/home/tohamy/Projects/data'  # options: [/home/tohamy/Projects/data, /vildata/tohamy/CPAB_Activation/data'
     
-    params['lambda_cd'] = 0.2  # the weight for the contrastive-divergence loss (learned reward)
-    params['lambda_reg'] = 2  # he weight for the regularization loss (fixed reward)
-    params['beta_uniform'] = 0.9  # the probability for non-uniform run
+    params['lambda_cd'] = 0.4  # the weight for the contrastive-divergence loss (learned reward)
+    params['lambda_reg'] = 0.6  # he weight for the regularization loss (fixed reward)
+    params['beta_uniform'] = 0.99  # the probability for non-uniform run
     
     params['plot_freq'] = 100  # -1, 100..
     params['save_model_freq'] = 500
@@ -22,7 +22,7 @@ def get_parameters(dataset_name):
     params['unsup_flag'] = True   # If True, use pseudo-labels from augmentations during training. Otherwise, use ground-truth labels.
     params['tempr'] = 0.05  # also 0.4 is good.  # calibration temperature (used in the "sample" and "sample_for_J_loss" functions). Use 1 for no calibration
     params['K_fixed'] = -1
-    
+
     params['eval_it'] = (3500, 4000, 4500, 5000, 5500)  # Iteration numbers to perform eval on. In case we want specific model, put -1 and use the regular checkpoint file. 
     
     # Optimation params:    
@@ -32,7 +32,7 @@ def get_parameters(dataset_name):
     params['weight_decay'] = 0.0
     params['weight_decay_end'] = None
     
-    params['alpha'] = 1.0  #.7  # Dispersion parameter of the Chinese Restaurant Process
+    params['alpha'] = 0.7  # Dispersion parameter of the Chinese Restaurant Process
 
     params['CIFAR100_TRAIN_MEAN'] = (0.5070751592371323, 0.48654887331495095, 0.4409178433670343)  # for data transform
     params['CIFAR100_TRAIN_STD'] = (0.2673342858792401, 0.2564384629170883, 0.27615047132568404)   # for data transform
@@ -66,10 +66,10 @@ def get_parameters(dataset_name):
         params['img_sz'] = None
         params['channels'] = 0
         params['encoder_type'] = 'fc'
-        params['Nmin'] = 100
-        params['Nmax'] = 1000
-        params['Nmin_test'] = 300
-        params['Nmax_test'] = 301
+        params['Nmin'] = 50
+        params['Nmax'] = 100
+        params['Nmin_test'] = 100
+        params['Nmax_test'] = 101
         
     elif dataset_name == 'MNIST':
         params['x_dim'] = 784  # when using fc_encoder directly on the images
@@ -80,10 +80,10 @@ def get_parameters(dataset_name):
         params['channels'] = 1
         params['nlabels'] = 10
         params['encoder_type'] = 'conv'
-        params['Nmin'] = 100
-        params['Nmax'] = 1000
-        params['Nmin_test'] = 300
-        params['Nmax_test'] = 301
+        params['Nmin'] = 50
+        params['Nmax'] = 100
+        params['Nmin_test'] = 50
+        params['Nmax_test'] = 51
     
     elif dataset_name == 'FASHIONMNIST':
         params['x_dim'] = 784  # when using fc_encoder directly on the images
@@ -94,10 +94,10 @@ def get_parameters(dataset_name):
         params['channels'] = 1
         params['nlabels'] = 10
         params['encoder_type'] = 'conv'
-        params['Nmin'] = 100
-        params['Nmax'] = 1000
-        params['Nmin_test'] = 300
-        params['Nmax_test'] = 301
+        params['Nmin'] = 50
+        params['Nmax'] = 100
+        params['Nmin_test'] = 50
+        params['Nmax_test'] = 51
         
     elif dataset_name == 'CIFAR':
         params['x_dim'] = 3072
@@ -111,8 +111,8 @@ def get_parameters(dataset_name):
         params['reduce_dim_type'] = 't-SNE'
         params['data_path'] = params['data_path'] + '/CIFAR-10-images/' 
         params['encoder_type'] = 'resnet18'
-        params['Nmin'] = 100
-        params['Nmax'] = 1000
+        params['Nmin'] = 50
+        params['Nmax'] = 100
         params['Nmin_test'] = 20
         params['Nmax_test'] = 50
 
@@ -143,8 +143,8 @@ def get_parameters(dataset_name):
         params['nlabels'] = 50
         params['data_path'] = params['data_path'] + '/imagenet50_ftrs/'  
         params['encoder_type'] = 'fc'
-        params['Nmin'] = 100
-        params['Nmax'] = 1000
+        params['Nmin'] = 50
+        params['Nmax'] = 100
         params['Nmin_test'] = 49
         params['Nmax_test'] = 50
 
@@ -158,8 +158,8 @@ def get_parameters(dataset_name):
         params['nlabels'] = 100
         params['data_path'] = params['data_path'] + '/imagenet100_ftrs/'  
         params['encoder_type'] = 'fc'
-        params['Nmin'] = 100
-        params['Nmax'] = 1000
+        params['Nmin'] = 50
+        params['Nmax'] = 100
         params['Nmin_test'] = 49
         params['Nmax_test'] = 50
 
@@ -173,8 +173,8 @@ def get_parameters(dataset_name):
         params['nlabels'] = 199
         params['data_path'] = params['data_path'] + '/imagenet200_ftrs/'  
         params['encoder_type'] = 'fc'
-        params['Nmin'] = 100
-        params['Nmax'] = 1000
+        params['Nmin'] = 50
+        params['Nmax'] = 100
         params['Nmin_test'] = 49
         params['Nmax_test'] = 50
                 
@@ -188,10 +188,10 @@ def get_parameters(dataset_name):
         params['nlabels'] = 10
         params['data_path'] = params['data_path'] + '/cifar10_features/'  
         params['encoder_type'] = 'fc'
-        params['Nmin'] = 100  # 100
-        params['Nmax'] = 200 # 1000
-        params['Nmin_test'] = 200 # 300
-        params['Nmax_test'] = 201 # 301
+        params['Nmin'] = 50
+        params['Nmax'] = 100
+        params['Nmin_test'] = 49
+        params['Nmax_test'] = 50
         
     elif dataset_name == 'tinyimagenet':
         params['x_dim'] = None
@@ -206,7 +206,7 @@ def get_parameters(dataset_name):
         params['data_path'] = params['data_path'] + '/tiny_imagenet/tiny-imagenet-200/'
         params['encoder_type'] = 'resnet18'
         params['Nmin'] = 50
-        params['Nmax'] = 500
+        params['Nmax'] = 100
         params['Nmin_test'] = 20
         params['Nmax_test'] = 50
         

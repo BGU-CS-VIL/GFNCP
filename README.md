@@ -12,10 +12,31 @@
 Pytorch implementation of GFNCP.
 
 ### Requirements
-python 3.12
+python 3
+torch
+numpy
+wandb
 
 ### How to use
-TBD
+Tp run the code:
+```
+python main.py --dataset MNIST --data_path '/your_path'
+```
+
+To use a pretrained model, use the load-model flag, and the latest checkpoint from saved_models folder will be used.
+
+For tracking loss and metrics values during training and evaluation, use wandb flag to log these values to Weights and Biases.
+
+Make sure to update wandb entity and project names in main.py:
+```
+def init_wandb(args, params):
+    if has_wandb:
+        wnb = wandb.init(entity='your_entity', project='your_project', name='experiment_name', config=args, settings=wandb.Settings(_service_wait=300))
+        ...
+```
+
+Use params.py for setting batch_size, iterations number, and other hyper-parameters.
+ 
 
 **Other experiments' code will be uploaded soon**
 

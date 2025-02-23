@@ -19,12 +19,11 @@ def eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=50):
         
         NMI_test = 0
         ARI_test = 0
-        # ACC_test = 0
         LL_test = 0
         MC_test = 0
         for i in range(M):
 
-            data, cs_gt, _, K = data_generator.generate(N=None, batch_size=batch_size, train=False)  # data: [1, N, 2] or [1, N_sampling, 28, 28] or [1, N, 3, 28, 28]
+            data, cs_gt, _, K, _ = data_generator.generate(N=None, batch_size=batch_size, train=False)  # data: [1, N, 2] or [1, N_sampling, 28, 28] or [1, N, 3, 28, 28]
             cs_gt = cs_gt[0, :] 
             N = data.size(1)
 
@@ -33,7 +32,6 @@ def eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=50):
 
             NMI_test += compute_NMI(cs_gt, cs_test, None)
             ARI_test += compute_ARI(cs_gt, cs_test, None)
-            # ACC_test += compute_ACC(cs_gt, cs_test)
             LL_test += ll
             MC_test += mc_loss
 
@@ -41,25 +39,18 @@ def eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=50):
         ARI_test = ARI_test / M
         LL_test = LL_test / M
         MC_test = MC_test / M
-        # ACC_test = ACC_test / M
         
         print('\n(eval) iteration: {0}, N: {1}, K: {2}, NMI_test: {3:.3f}, ARI_test: {4:.3f}, LL_test: {5:.3f}, MC_test: {6:.3f}'.format(it, N, K, NMI_test, ARI_test, LL_test, MC_test))
 
-        curr_stats = OrderedDict(it=it)
-        curr_stats.update({'NMI_test': NMI_test})
-        curr_stats.update({'ARI_test': ARI_test})
-        # curr_stats.update({'ACC_test': ACC_test})
-        curr_stats.update({'LL_test': LL_test})
-        curr_stats.update({'MC_test': MC_test})
-        wandb.log(curr_stats, step=it)
+        if wnb is not None:
+            curr_stats = OrderedDict(it=it)
+            curr_stats.update({'NMI_test': NMI_test})
+            curr_stats.update({'ARI_test': ARI_test})
+            # curr_stats.update({'ACC_test': ACC_test})
+            curr_stats.update({'LL_test': LL_test})
+            curr_stats.update({'MC_test': MC_test})
+            wandb.log(curr_stats, step=it)
         
-        # Update the general stats: 
-        #   # (THIS WAS RELEVANT WHEN WE COMPUTED STATS ONLY ON ONE BATCH, WE NEEDED THIS TO CIMPUTE AVERAGE AT THE END)
-        # if it >= params['iter_stats_avg']:
-        #     stats['NMI_sum'] += NMI_test
-        #     stats['ARI_sum'] += ARI_test
-        #     stats['LL_sum'] += ll
-        #     stats['count'] += 1
         
         if NMI_test > stats['NMI_max']:
             stats.update({'NMI_max': NMI_test})
@@ -67,9 +58,6 @@ def eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=50):
         if ARI_test > stats['ARI_max']:
             stats.update({'ARI_max': ARI_test})
             stats.update({'ARI_max_it': it})
-        # if ACC_test > stats['ACC_max']:
-        #     stats.update({'ACC_max': ACC_test})
-        #     stats.update({'ACC_max_it': it})
         if LL_test > stats['LL_max']:
             stats.update({'LL_max': LL_test})
             stats.update({'LL_max_it': it})
@@ -95,7 +83,7 @@ def eval_stats_Beam_Search(wnb, data_generator, batch_size, params, dpmm, it, st
         ARI_test = 0
         for i in range(M):
 
-            data, cs_gt, _, K = data_generator.generate(N=None, batch_size=batch_size, train=False)  # data: [1, N, 2] or [1, N_sampling, 28, 28] or [1, N, 3, 28, 28]
+            data, cs_gt, _, K, _ = data_generator.generate(N=None, batch_size=batch_size, train=False)  # data: [1, N, 2] or [1, N_sampling, 28, 28] or [1, N, 3, 28, 28]
             cs_gt = cs_gt[0, :] 
             N = data.size(1)
 
@@ -110,10 +98,11 @@ def eval_stats_Beam_Search(wnb, data_generator, batch_size, params, dpmm, it, st
         
         print('\n(eval) iteration: {0}, N: {1}, K: {2}, NMI_test: {3:.3f}, ARI_test: {4:.3f}'.format(it, N, K, NMI_test, ARI_test))
 
-        curr_stats = OrderedDict(it=it)
-        curr_stats.update({'NMI_test': NMI_test})
-        curr_stats.update({'ARI_test': ARI_test})
-        wandb.log(curr_stats, step=it)
+        if wnb is not None:
+            curr_stats = OrderedDict(it=it)
+            curr_stats.update({'NMI_test': NMI_test})
+            curr_stats.update({'ARI_test': ARI_test})
+            wandb.log(curr_stats, step=it)
         
         if NMI_test > stats['NMI_max']:
             stats.update({'NMI_max': NMI_test})
@@ -178,7 +167,26 @@ def plot_samples_and_histogram(wnb, data_orig, cs_gt, params, dpmm, it, N=20, sh
             
     dpmm.train()
 
+    
 
+def plot_data_perm_for_paper(data, cs_gt, params, dpmm, it, N=20):
+    torch.cuda.empty_cache()  
+    dataname = params['dataset_name']
+    channels = params['channels']
+    dpmm.eval()
+
+    with torch.no_grad():
+        
+        for i in range(10):
+            # Get sampled clustering assignments:
+            data_perm = data[i, :][None, :]  # (1, 20, 28, 28) or (1, 20, 2)
+            cs_test, probs, _, _, data2 = sample_from_model(channels, data_perm, dpmm, S=100, take_max=False, seed=it)
+            fig, plt = plot_samples(params, dataname, data_perm, cs_test, probs, nmi=0, seed=it)
+            fig.savefig('sample_perm_' + str(i) + '.png')
+        
+    dpmm.train()
+    
+    
 def sample_from_model_for_NMI(data, dpmm, it):
     css = dpmm.module.sample_for_NMI(data, it)  # css (cs test): [S, N]; probs: [S,] (or B instead of S) 
     return css

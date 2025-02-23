@@ -3,22 +3,19 @@
 
 import os
 os.environ["NCCL_P2P_DISABLE"] = '1'
-# os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 os.environ["WANDB_SILENT"] = "true"
 os.environ["WANDB__SERVICE_WAIT"] = "300"
 
 import numpy as np
 import argparse
 import time
-# import tensorflow as tf
 import torch
 from ncp import NeuralClustering
 from data_generator import get_generator
 from utils import *
 from geweke_test import geweke_test_histogram, geweke_test_multiple_N
 from params import get_parameters
-from evaluation import *
-from plot_histogram import data_invariance_metric
+from evaluation import eval_stats, plot_samples_and_histogram
 import shutil
 from collections import OrderedDict
 import random
@@ -40,11 +37,17 @@ def main(args):
     params = get_parameters(datasetname)
     params['device'] = torch.device("cuda:0" if args.cuda else "cpu") 
     params['dataset_name'] = datasetname
-    
+
+    if args.data_path:
+        params['data_path'] = args.data_path
+
     seed = args.seed
     set_seed(seed)
 
-    wnb = init_wandb(args, params)
+    if args.wandb:
+        wnb = init_wandb(args, params)
+    else:
+        wnb = None
     
     batch_size = params['batch_size']
     loss_str = params['loss_str']
@@ -110,106 +113,13 @@ def main(args):
         start_it = it
         
     # This line helps wnb to get updated with the iteration number when loading from checkpoint:       
-    wnb.log({'it': start_it}, step=start_it)
+    if args.wandb:
+        wnb.log({'it': start_it}, step=start_it)
     
     # Initialize dictionary for eval stats:
     stats = {'NMI_max': 0, 'ARI_max': 0, 'ACC_max': 0, 'LL_max': -float('Inf'), 'MC_min': float('Inf'), 
              'NMI_max_it': 0, 'ARI_max_it': 0, 'ACC_max_it': 0, 'LL_max_it': 0, 'MC_min_it': 0}
-
-
-    if eval_best_model:
-        print('Start evaluation of chosen model')
-        
-        dpmm.eval()
-        
-        with torch.no_grad():
-        
-            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            
-            # # Compute NMI, ARI, MC_test:
-            # if params['eval_it'] != -1:
-            #     for i in params['eval_it']:
-            #         checkpoint_path = os.path.join('saved_models/', datasetname, 'checkpoints', 'checkpoint_' + str(i) + '.pth')
-            #         state = restore_checkpoint(checkpoint_path, state, params['device'])
-            #         print('\nRestore model from iteration:', state['step'])
-            #         M = (dataset_test_size//batch_size)*2
-            #         stats = eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=M)           
-            # else:
-            #     M = (dataset_test_size//batch_size)*2
-            #     stats = eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=M)             
-
-            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            
-            # # Compute NMI using Beam Search:
-            # M = 1
-            # stats = eval_stats_Beam_Search(wnb, data_generator, batch_size, params, dpmm, it, stats, M=M)
-            
-            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            
-            # # Get histogram of invariance metric:
-            # perms = 500
-            # Z = 3
-            # fig, plt = data_invariance_metric(data_generator, dpmm, perms=perms, Z=Z)
-            # image = wandb.Image(fig)
-            # wnb.log({f"Plots_invariance_hist/hist_invariance_{it}": image}, step=it)
-            # plt.clf()
-            
-            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            
-            # # Run Geweke's Test:
-            # if not os.path.exists('output/geweke/'):
-            #     os.makedirs('output/geweke/', exist_ok=True)
-                
-            # fig1, plt1 = geweke_test_histogram(dpmm, data_generator, params)
-            # image = wandb.Image(fig1)
-            # wnb.log({f"Plots_Geweke/Geweke_histogram": image}, step=it)
-            # plt1.clf()
-                
-            # fig2, plt2 = geweke_test_multiple_N(dpmm, data_generator, params)
-            # image = wandb.Image(fig2)
-            # wnb.log({f"Plots_Geweke/Geweke_multiple_N": image}, step=it)
-            # plt2.clf()
-            
-            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            
-            # Compare qualitative results of order permutations:
-            N = 20
-            
-            # ----- Extract dataset of one data point in different permutations, save it locally:
-            data, cs_gt, _, _, _ = data_generator.generate(N=N, batch_size=1, train=False)  
-            
-            data_all = []
-            cs_gt_all = []
-            for i in range(64):
-                # Prepare a permutation of the original data:
-                arr = np.arange(N)
-                np.random.shuffle(arr)   # permute the order in which the points are queried
-                data_perm = data[:, arr, :]
-                cs_perm = cs_gt[:, arr]
-                data_all.append(torch.clone(data_perm))
-                cs_gt_all.append(torch.clone(cs_perm))
-                print(cs_perm)
-            
-            print('---')
-            data_all = torch.cat(data_all, dim=0)
-            cs_gt_all = torch.cat(cs_gt_all, dim=0)
-            print(data_all.shape, cs_gt_all.shape)
-            print(cs_gt_all)
-            
-            torch.save(data_all, 'data_perms.pt') 
-            torch.save(cs_gt_all, 'cs_gt_perms.pt')
-            1/0
-        
-            #  ----- Perform the test:
-            data = torch.load('data_perms.pt')  # data: [64, N, 28, 28] or [64, N, 2]
-            cs_gt = torch.load('cs_gt_perms.pt')  # cs_gt: [64, N]
-            plot_data_perm_for_paper(data, cs_gt, params, dpmm, it, N=N)
-        
-            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            
-        dpmm.train()
-        
-        return
+    
 
     # ----------------------------------------------
     #              Main training loop:
@@ -234,11 +144,11 @@ def main(args):
             it_lr_sched = it_lr_sched + 1
             
         # Evaluate the model periodically:
-        if plot_freq != -1 and it % plot_freq == 0:
+        if plot_freq != -1 and it % plot_freq == 0 and args.wandb:
             # print('\nPloting samples, compute NMI, ARI, LL, iteration ' + str(it) + '.. \n')   
             
             # NMI, ARI, LL.
-            data, cs_gt, clusters, K = data_generator.generate(N=None, batch_size=batch_size, train=False)  # data: [1, N, 2] or [1, N_sampling, 28, 28] or [1, N, 3, 28, 28]
+            # data, cs_gt, clusters, K = data_generator.generate(N=None, batch_size=batch_size, train=False)  # data: [1, N, 2] or [1, N_sampling, 28, 28] or [1, N, 3, 28, 28]
             stats = eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=dataset_test_size//batch_size)
             
             # Plots. Here we must use N=20 because we need to plot the results:
@@ -252,10 +162,6 @@ def main(args):
   
         # Generate one batch for training
         data, cs, clusters, K, uniform_c = data_generator.generate(N=None, batch_size=batch_size, train=True, unsup=unsup_flag)
-        
-        # DEBUG: HOW AUGMENTED IMAGES LOOK LIKE
-        # data, cs, clusters, K = data_generator.generate(N=20, batch_size=1, train=True, unsup=True)  # data: [1, N, 2] or [1, N, 28, 28] or [1, N, 3, 28, 28]            
-        # plot_samples_and_histogram(wnb, data, cs[0, :], params, dpmm, it, N=20, show_histogram=show_histogram)
         
         N = data.shape[1]
         
@@ -278,8 +184,9 @@ def main(args):
         ARI_train = compute_ARI(cs[0, :], cs_pred_train, None)           
                 
         # Store statistics in wandb:
-        sts = update_stats_train(it, N, K, loss, entrpy, NMI_train, ARI_train)  # stats.update({'train_acc1': acc_train})
-        wandb.log(sts, step=it)
+        if args.wandb:
+            sts = update_stats_train(it, N, K, loss, entrpy, NMI_train, ARI_train)  # stats.update({'train_acc1': acc_train})
+            wandb.log(sts, step=it)
 
         if it % 10 == 0:
             print('\n(train) iteration: {0}, N: {1}, K: {2}, NMI_train: {3:.3f}, ARI_train: {4:.3f}, Loss: {5:.3f}'.format(it, N, int(K[0].detach().cpu().numpy()), NMI_train, ARI_train, loss))
@@ -293,7 +200,8 @@ def main(args):
             'Max LL (test): {0:.3f} (on iter:) {1:.3f}'.format(stats['LL_max'], stats['LL_max_it']), '\n',
             'Min MC (test): {0:.3f} (on iter:) {1:.3f}'.format(stats['MC_min'], stats['MC_min_it']), '\n')
     
-    wnb.finish()
+    if args.wandb:
+        wnb.finish()
     
 
 def set_seed(seed):
@@ -308,7 +216,7 @@ def set_seed(seed):
     
 def init_wandb(args, params):
     if has_wandb:
-        wnb = wandb.init(entity='bgu_cs_vil', project="NCP_EB", name=args.experiment, config=args, settings=wandb.Settings(_service_wait=300))
+        wnb = wandb.init(entity='bgu_cs_vil', project="NCP_EB", name='wnb_experiment', config=args, settings=wandb.Settings(_service_wait=300))
         wnb.log_code(".")  # log source code of this run
         wnb.config.update(params)
     else:
@@ -325,6 +233,8 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default='Gauss2D', metavar='S',
                     choices = ['Gauss2D','MNIST', 'FASHIONMNIST', 'CIFAR', 'IN50_ftrs', 'IN100_ftrs', 'IN200_ftrs', 'CIFAR_ftrs', 'tinyimagenet'],
                     help='Generative Model: Gauss2D or MNIST (default: Gauss2D)')
+    parser.add_argument('--data-path', type=str, default='', metavar='S',
+                    help='path for dataset')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
     parser.add_argument('--seed', type=int, default=123, metavar='S',
@@ -337,20 +247,20 @@ if __name__ == '__main__':
                     help='flag for loading model or start from scratch')    
     parser.add_argument('--run-geweke', action='store_true', default=False,
                     help='flag for running Gewekes Test from a learned model')  
-    parser.add_argument('--experiment', default='', type=str, metavar='NAME',
-                   help='name of wandb experiment')   
+    parser.add_argument('--wandb', action='store_true', default=False,
+                    help='flag for using wandb for logging data')
         
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     
-    if not args.load_model and not args.run_geweke and not args.eval_best_model:
-        # EXPECT EMPTY FOLDER CALLED saved_model:
+    if not args.load_model:
+        # Remove saved models
         model_dir = 'saved_models'
         if not os.path.exists(model_dir):
-            raise NameError('No saved_models folder, please create it manually.')
-        elif len(os.listdir(model_dir)) != 0:
-            raise NameError('The saved_models folder contains checkpoints, but load_model flag is off.')
+            os.makedirs(model_dir, exist_ok=True)
 
+        shutil.rmtree(model_dir)
+        
     if os.path.exists('wandb'): 
         shutil.rmtree('wandb')
     

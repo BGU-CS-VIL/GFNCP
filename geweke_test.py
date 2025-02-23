@@ -106,7 +106,6 @@ def compute_K_multinomial_dist(dpmm, data_generator, params, N=30, alpha=0.7, M=
     pred_K = []
 
     for i in range(M):
-        print('i', i)
         
         # Sample from CRP:
         clusters, N, K = generate_CRP(params, N=N, alpha=alpha, train=False)  
@@ -114,7 +113,7 @@ def compute_K_multinomial_dist(dpmm, data_generator, params, N=30, alpha=0.7, M=
         gt_K.append(K)
         
         # Sample from model:
-        data, cs_gt, _, K, _ = data_generator.generate(N=N, batch_size=1, train=False)  # data: [1, N, 2] or [1, N_sampling, 28, 28] or [1, N, 3, 28, 28]
+        data, cs_gt, _, K = data_generator.generate(N=N, batch_size=1, train=False)  # data: [1, N, 2] or [1, N_sampling, 28, 28] or [1, N, 3, 28, 28]
         cs_gt = cs_gt[0, :] 
         cs_test, probs, _, _, _ = sample_from_model(params['channels'], data, dpmm, S=S, take_max=True)  # cs_test: [S', N] (where S' is the unique array of the samples [S, N])
         

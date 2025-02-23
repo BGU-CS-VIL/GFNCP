@@ -130,7 +130,7 @@ class dataGenerator():
         if self.params['K_fixed'] == -1:
             # Number of clusters to sample from:
             L = len(label_data_map.keys())
-            while K < 3 or K > L:  # Generate clustering according to CRP with 3 <= K <= L.
+            while K <= 1 or K > L:  # Generate clustering according to CRP with 2 <= K <= L.
                 clusters, N, K = generate_CRP(self.params, N=N, alpha=self.params['alpha'], train=train)  
                 # "clusters": is in shape [N+2]. Entry i (from 1..N+1) holds the number of points assigned to label i. Sum over clusters should be equal to N.
         else: 
@@ -269,7 +269,7 @@ class gauss2dGenerator():
         if self.params['K_fixed'] == -1:
             # Number of clusters to sample from:
             L = 10
-            while K < 3 or K > L:  # Generate clustering according to CRP with 3 <= K <= L.
+            while K <= 1 or K > L:  # Generate clustering according to CRP with 2 <= K <= L.
                 clusters, N, K = generate_CRP(self.params, N=N, alpha=self.params['alpha'], train=train)  
         else:
             # Run with fixed K:
@@ -426,9 +426,6 @@ def get_dataset(params,
         dataset = datasets.ImageFolder(root, transform=cifar_transform)
         nlabels = params['nlabels']
 
-        # dataset = datasets.CIFAR10(root=data_dir, train=train, download=True, transform=cifar_transform)
-        # nlabels = 10
-        
     elif data_name == 'CIFAR100':
         dataset = datasets.CIFAR100(data_dir, train=train, transform=cifar_transform, download=True)
         nlabels = 100
