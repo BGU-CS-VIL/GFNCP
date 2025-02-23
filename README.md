@@ -6,7 +6,7 @@
 
 <br>
 <p align="center">
-<img src="https://github.com/BGU-CS-VIL/GFNCP/blob/main/.github/gfncp.png" alt="GFNCP Framework" width="900" height="300">
+<img src="https://github.com/BGU-CS-VIL/GFNCP/blob/main/.github/gfncp.png" alt="GFNCP Framework" width="700" height="300">
 </p>
 
 Pytorch implementation of GFNCP.
