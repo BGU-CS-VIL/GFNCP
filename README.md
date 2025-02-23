@@ -21,7 +21,7 @@ numpy
 wandb
 
 ### How to use
-Tp run the code:
+To run the code:
 ```
 python main.py --dataset MNIST --data_path '/your_path'
 ```
