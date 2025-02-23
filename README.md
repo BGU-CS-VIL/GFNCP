@@ -27,7 +27,7 @@ To use a pretrained model, use the load-model flag, and the latest checkpoint fr
 
 For tracking loss and metrics values during training and evaluation, use wandb flag to log these values to Weights and Biases.
 
-Make sure to update wandb entity and project names in main.py:
+Make sure to update wandb entity and project names in ```main.py```:
 ```
 def init_wandb(args, params):
     if has_wandb:
@@ -35,10 +35,8 @@ def init_wandb(args, params):
         ...
 ```
 
-Use params.py for setting batch_size, iterations number, and other hyper-parameters.
+Use ```params.py``` for setting batch_size, iterations number, and other hyper-parameters.
  
-
-**Other experiments' code will be uploaded soon**
 
 ## License
 This project is released under the MIT license. Please see the [LICENSE](LICENSE) file for more information.
