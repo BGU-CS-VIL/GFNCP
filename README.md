@@ -4,7 +4,12 @@
 
 [![arXiv](https://img.shields.io/badge/arXiv-2407.07564-b31b1b.svg?style=flat)](TBD)
 
-Pytorch implementation of DiTAC.
+<br>
+<p align="center">
+<img src="https://github.com/BGU-CS-VIL/GFNCP/blob/main/.github/gfncp_fig.png" alt="GFNCP Framework" width="900" height="300">
+</p>
+
+Pytorch implementation of GFNCP.
 
 ### Requirements
 python 3.12
