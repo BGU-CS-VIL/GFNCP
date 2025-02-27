@@ -47,5 +47,10 @@ This project is released under the MIT license. Please see the [LICENSE](LICENSE
 ## Citation
 If you find this repository helpful, please consider citing our paper:
 ```
-TBD
+@inproceedings{chelly2025consistent,
+  title={Consistent Amortized Clustering via Generative Flow Networks},
+  author={Chelly, Irit and Uziel, Roy and Freifeld, Oren and Pakman, Ari},
+  booktitle={28th International Conference on Artificial Intelligence and Statistics (AISTATS)},
+  year={2025}
+}
 ```
